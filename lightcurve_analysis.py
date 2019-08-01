@@ -220,10 +220,8 @@ def binned_SDR(x,y,prot,yerr=0,makeplots=True,sep='peaks'):
     y_smooth = SDR(x,y,prot,yerr,sep='peaks',retSD=False)[3]
     xrange = np.max(x) - np.min(x)   
     binsize = prot*1.5
-    binshift = prot*0.6
+    binshift = prot
     maxshift = (xrange-binsize)/binshift
-    #xpeaks = []
-    #ypeaks = []
     xlims = []
     x_sdr = []
     sdrs = []
@@ -241,15 +239,13 @@ def binned_SDR(x,y,prot,yerr=0,makeplots=True,sep='peaks'):
             yerrbin = yerr[lower_ind:upper_ind]
         else:
             yerrbin = 0
-        if len(xbin) > 0:
-            xmid = np.median(xbin)
-            x_sdr.append(xmid)
-            sdr = SDR(xbin,ybin,prot,yerrbin,sep,retSD=True)
-            #xp,yp = SDR(x,y,prot,yerr,sep,retSD=False)[0:2]
-            #xpeaks.append(xp)
-            #ypeaks.append(yp)
+
+        xmid = np.median(xbin)
+        x_sdr.append(xmid)
+        sdr = SDR(xbin,ybin,prot,yerrbin,sep,retSD=True)
+        
             
-            sdrs.append(sdr)
+        sdrs.append(sdr)
         
     #-------------------------- Generate Plots -------------------------------
     if makeplots == True:
@@ -278,7 +274,7 @@ def binned_SDR(x,y,prot,yerr=0,makeplots=True,sep='peaks'):
 
 #-------------------------- Kepler SDR Functions -------------------------------
     
-def kepler_SDR(lc,th=3):
+def kepler_SDR(lc,th=3,makeplots=True):
     """
     Calculates the single-double ratio (SDR) of Kepler stars, from Basri et 
     al. (2018) i.e. the ratio of the time spent by the star in 'single mode' 
@@ -300,19 +296,20 @@ def kepler_SDR(lc,th=3):
     xdips,ydips,dsep,y_smooth = SDR(x,y,prot,y_std,sep='dips',retSD=False)
     
     #------------------------- Plot Outputs --------------------------------
-    lc.plot()
-    plt.scatter(xpeaks,ypeaks,color='r')
-    plt.scatter(xdips,ydips,color='b')
-    plt.title('Original LC Data')
-    
-    plt.figure()
-    plt.plot(x,y_smooth)
-    plt.scatter(xpeaks,ypeaks,color='r')
-    plt.scatter(xdips,ydips,color='b')
-    plt.xlabel('Time(JDN)')
-    plt.ylabel('Normalized Flux')
-    plt.title('Smoothed LC Data')
-    plt.show()
+    if makeplots == True:
+        lc.plot()
+        plt.scatter(xpeaks,ypeaks,color='r')
+        plt.scatter(xdips,ydips,color='b')
+        plt.title('Original LC Data')
+        
+        plt.figure()
+        plt.plot(x,y_smooth)
+        plt.scatter(xpeaks,ypeaks,color='r')
+        plt.scatter(xdips,ydips,color='b')
+        plt.xlabel('Time(JDN)')
+        plt.ylabel('Normalized Flux')
+        plt.title('Smoothed LC Data')
+        plt.show()
     
     #-----------------------------------------------------------------------
     
@@ -342,15 +339,15 @@ def kepler_SDR_binned(lc,th=3,makeplots=True):
     xd_sdr,dsdrs = binned_SDR(x,y,prot,y_std,makeplots,sep='dips')
     
     psdrcount = psdrs.count(-2.0)
-    psdrfrac = psdrcount/len(psdrs)
+    sdr_pfrac = psdrcount/len(psdrs)
     
-    return psdrfrac
-    
+    return sdr_pfrac
+
      
 
 #----------------------------- TSI SDR Functions -----------------------------
     
-def TSI_SDR(start_date,end_date):
+def TSI_SDR(start_date,end_date,makeplots=True):
     """
     Calculates the single-double ratio (SDR) of TSI data, from the input 
     start date to end date. 
@@ -383,23 +380,24 @@ def TSI_SDR(start_date,end_date):
     xdips,ydips,dsep,y_smooth = SDR(x,y,prot,y_std,sep='dips',retSD=False)
     
     #---------------------------- Plot Outputs -------------------------------
-    plt.figure()
-    plt.plot(x,y,color='black')
-    #plt.scatter(xpeaks,ypeaks,color='r')
-    #plt.scatter(xdips,ydips,color='b')
-    plt.title('Original TSI Data from %s to %s' %(start_date,end_date))
-    plt.xlabel('Average Date JDN')
-    plt.ylabel('Normalized Flux')
-
+    if makeplots == True:
+        plt.figure()
+        plt.plot(x,y,color='black')
+        #plt.scatter(xpeaks,ypeaks,color='r')
+        #plt.scatter(xdips,ydips,color='b')
+        plt.title('Original TSI Data from %s to %s' %(start_date,end_date))
+        plt.xlabel('Average Date JDN')
+        plt.ylabel('Normalized Flux')
     
-    plt.figure()
-    plt.plot(x,y_smooth,color='black')
-    plt.scatter(xpeaks,ypeaks,color='r')
-    plt.scatter(xdips,ydips,color='b')
-    plt.title('Smoothed TSI Data from %s to %s' %(start_date,end_date))
-    plt.xlabel('Average Date JDN')
-    plt.ylabel('Normalized Flux')
-    plt.show()
+        
+        plt.figure()
+        plt.plot(x,y_smooth,color='black')
+        plt.scatter(xpeaks,ypeaks,color='r')
+        plt.scatter(xdips,ydips,color='b')
+        plt.title('Smoothed TSI Data from %s to %s' %(start_date,end_date))
+        plt.xlabel('Average Date JDN')
+        plt.ylabel('Normalized Flux')
+        plt.show()
       
     #------------------------------------------------------------------------
     
@@ -440,9 +438,9 @@ def TSI_SDR_binned(start_date,end_date,makeplots=True):
     xd_sdr,dsdrs = binned_SDR(x,y,prot,y_std,makeplots,sep='dips')
 
     psdrcount = psdrs.count(-2.0)
-    psdrfrac = psdrcount/len(psdrs)
+    sdr_pfrac = psdrcount/len(psdrs)
     
-    return psdrfrac
+    return sdr_pfrac
 
 #------------------------------------------------------------------------------
         
