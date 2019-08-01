@@ -1,5 +1,5 @@
-UROP Project \\ 
-24 June - 2 August 2019\\
+UROP Project    return
+24 June - 2 August 2019    return
 Amena Faruqi 
 
 - Please ensure that the Lightkurve package has been installed before running. 
