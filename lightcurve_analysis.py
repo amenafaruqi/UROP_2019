@@ -254,9 +254,7 @@ def binned_SDR(x,y,prot,yerr=0,makeplots=True,sep='peaks'):
         ax1.plot(x,y_smooth,color='b')
         ax2.set_xlabel('Time (JDN)')
         ax2.plot(x_sdr,sdrs,color = 'black')
-        print(len(xlims))
         for v in range(0,len(xlims),2):
-            print(v)
             color = np.random.rand(3,)
             ax2.scatter(x_sdr[int(v/2)],sdrs[int(v/2)],c=color)
             ax2.axvline(xlims[v],ls='--',c = color)
