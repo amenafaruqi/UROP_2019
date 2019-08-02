@@ -61,7 +61,7 @@ def remove_anomalies(lc):
     return lc
 
 
-def make_lc(ID,q):
+def makeLCQ(ID,q):
     """
     Generates a Kepler lightcurve file for a given target ID and quarter.
     1 <= q <= 17
@@ -71,7 +71,7 @@ def make_lc(ID,q):
     lightcurve = remove_anomalies(lightcurve)
     return lightcurve
 
-def join_lcs(ID):
+def joinLC(ID):
     """
     Generates a normalized lightcurve for the entire duration of the Kepler 
     mission (missing quarters are removed).
@@ -99,7 +99,7 @@ def check_stars(i1,i2,df):
     for index,row in df[i1:i2].iterrows():
         star_id = row['KID']
         prot = round(row['Prot'],3)
-        lc = make_lc(star_id,1)
+        lc = makeLCQ(star_id,1)
         lc.flatten(window_length=401).plot()
         lc.plot()
         plt.title('Rot. period = %g days, Q = %g' %(prot, 1))
@@ -113,7 +113,7 @@ def check_quarters(ID,q1,q2):
     prot = loc['Prot']
     for q in range(q1,q2):
         try:
-            lc = make_lc(ID,q)
+            lc = makeLCQ(ID,q)
             lc.flatten(window_length=401).bin(binsize=5).plot()
             lc.plot()
             plt.title('Rot. period = %g, Q = %g' %(prot,q))
@@ -132,7 +132,7 @@ def rot_periods(IDs):
         montet_period = fac.loc[fac['KID'] == ID]['Prot']
         montet_rot_periods.append(float(montet_period))
         
-        lc = join_lcs(ID)
+        lc = joinLC(ID)
         pg = lc.to_periodogram(oversample_factor=1)
         period = pg.period_at_max_power.value
         lk_rot_periods.append(period)
@@ -336,8 +336,8 @@ def kepler_SDR_binned(lc,th=3,makeplots=True):
     xp_sdr,psdrs = binned_SDR(x,y,prot,y_std,makeplots,sep='peaks')
     xd_sdr,dsdrs = binned_SDR(x,y,prot,y_std,makeplots,sep='dips')
     
-    psdrcount = psdrs.count(-2.0)
-    sdr_pfrac = psdrcount/len(psdrs)
+    psdrcount = psdrs.count(-2.0)     
+    sdr_pfrac = psdrcount/len(psdrs)   # double peak fraction
     
     return sdr_pfrac
 
@@ -390,11 +390,12 @@ def TSI_SDR(start_date,end_date,makeplots=True):
         
         plt.figure()
         plt.plot(x,y_smooth,color='black')
-        plt.scatter(xpeaks,ypeaks,color='r')
-        plt.scatter(xdips,ydips,color='b')
+        plt.scatter(xpeaks,ypeaks,color='r', label = 'Peaks')
+        plt.scatter(xdips,ydips,color='b',label = 'Dips')
         plt.title('Smoothed TSI Data from %s to %s' %(start_date,end_date))
         plt.xlabel('Average Date JDN')
         plt.ylabel('Normalized Flux')
+        plt.legend()
         plt.show()
       
     #------------------------------------------------------------------------
@@ -436,7 +437,7 @@ def TSI_SDR_binned(start_date,end_date,makeplots=True):
     xd_sdr,dsdrs = binned_SDR(x,y,prot,y_std,makeplots,sep='dips')
 
     psdrcount = psdrs.count(-2.0)
-    sdr_pfrac = psdrcount/len(psdrs)
+    sdr_pfrac = psdrcount/len(psdrs)  # double peak fraction
     
     return sdr_pfrac
 
@@ -455,8 +456,8 @@ def spot_fac_subsets(showhist=True):
     fac_approx = fac.round(0)
     spots_approx = spots.round(0)
     for index,row in fac_approx.iterrows():
-        spot_matches = spots_approx[(spots_approx['Prot'] == row['Prot'])]
-        spot_matches = spot_matches[(spot_matches['B-V'] == row['B-V'])]
+        spot_matches = spots_approx[(spots_approx['Prot'] == row['Prot'])]   # identify spots with similar rotation periods
+        spot_matches = spot_matches[(spot_matches['B-V'] == row['B-V'])]     # identify spots with similar B-V and prot
         if len(spot_matches) > 0:
             i = spot_matches.index[0] 
             spots_approx = spots_approx.drop(i)
@@ -504,8 +505,7 @@ def spot_fac_subsets(showhist=True):
         plt.title('B-V of Faculae and Spots')
         plt.legend()
         plt.show()
-    else:
-        pass
+
     
     #----------------------------------------------------------------------------
     
@@ -528,9 +528,8 @@ def spread(x,y,prot,bin_frac,var='percentiles'):
     """
     
     xrange = np.max(x) - np.min(x)   
-    binsize = prot
-    binshift = prot/bin_frac  
-    #maxshift = ((xrange/binsize) - 1)*bin_frac
+    binsize = prot                    # bin width 
+    binshift = prot/bin_frac          # amount by which to shift the left most edge of bin along
     maxshift = (xrange-binsize)/binshift
     var_list = []
     t_list = []
@@ -548,11 +547,11 @@ def spread(x,y,prot,bin_frac,var='percentiles'):
             t_list.append(t_avg)
             
             if var.lower() == 'percentiles':
-                p95_to_p5 = (np.percentile(bin_values,95) - np.percentile(bin_values,5)) + 1
+                p95_to_p5 = (np.percentile(bin_values,95) - np.percentile(bin_values,5)) 
                 var_list.append(p95_to_p5)
                 
             elif var.lower() == 'std':
-                std = np.std(bin_values) + 1
+                std = np.std(bin_values) 
                 var_list.append(std)
                 
             elif var.lower() == 'rms':
@@ -564,7 +563,7 @@ def spread(x,y,prot,bin_frac,var='percentiles'):
     return t_list,var_list
     
 
-def Rvar(db,datasource='kepler',showhist=True):
+def Rvar(db,datasource='kepler',showhist=True,binned=False):
     """
     Calculates Rvar values (Basri et al. 2013) for a database of Kepler stars.
     datasource =  'kepler', 'tsi' or 'sim' for Kepler data, TSI data and 
@@ -572,38 +571,68 @@ def Rvar(db,datasource='kepler',showhist=True):
     db = database containing data needed to calculate Rvar (must match datasource)
     
     """
-    rvars = [
-            ]
+    xlist = []
+    ylist = []
+    protlist = []
+    rvars = []
+    
     if datasource.lower() ==  'kepler': 
         startype = db['Var'].tolist()[0][:-1] + '-dominated Kepler Stars'
         for kid in db['KID'].tolist():
             print(kid)
             prot = float(db[db['KID'] == kid]['Prot'])
-            lc = join_lcs(kid)
+            protlist.append(prot)
+            lc = joinLC(kid)
             lc = lc.normalize().flatten(window_length=401).remove_nans()
             y = lc.flux   
             x = lc.time
+            ylist.append(y)
+            xlist.append(x)
             
     elif datasource.lower() == 'tsi':
+        db = db[(db['tsi_1au'] > 0)]
         startype = 'the Sun'
         prot = 24
+        protlist.append(prot)
         y = db['tsi_1au']
-        y = y/np.median(y)
-        x = db['avg_time_JDN']
+        y = (y/np.median(y)).tolist()
+        x = db['avg_time_JDN'].tolist()
+        ylist.append(y)
+        xlist.append(x)
         
     elif datasource.lower() == 'sim':
         startype = ' a Simulated Star'
         prot = 1
+        protlist.append(prot)
         y = db['y']
-        y = y/np.median(y)
-        x = db['x']
+        y = (y/np.median(y)).tolist()
+        x = db['x'].tolist()
+        ylist.append(y)
+        xlist.append(x)
         
     else:
         raise Exception('Not a valid source of data')
-    
-    all_rvars = spread(x,y,prot,1)[1]
-    med_rvar = np.median(all_rvars)
-    rvars.append(med_rvar)
+        
+    for stari in range(len(xlist)):
+        x = xlist[stari]
+        y = ylist[stari]  
+        prot = protlist[stari]
+        xbins,all_rvars = spread(x,y,prot,3)
+        
+        if binned == True:
+            f, (ax1, ax2) = plt.subplots(2,1,sharex=True)
+            ax1.plot(x,y,color='black')
+            ax2.set_xlabel('Time (JDN)')
+            ax2.plot(xbins,all_rvars,color = 'black')
+            ax2.scatter(xbins,all_rvars,color = 'r')
+            ax1.set_ylabel('Normalized Flux')
+            ax2.set_ylabel('$R_{var}$')   
+            fig = plt.gcf()
+            fig.suptitle('Rotation Period: %g days'%(prot))
+        
+        
+        med_rvar = np.median(all_rvars)
+        rvars.append(med_rvar)
 
     # ---------------------------- Histogram -------------------------------
     if showhist == True:
@@ -620,58 +649,74 @@ def Rvar(db,datasource='kepler',showhist=True):
     
     return rvars
 
+    
 
 def MDV(db,binsize,datasource = 'kepler',showhist=True):
     """
-    Calculates MDV values (Basri et al. 2013) for a database of Kepler stars.
+    Calculates MDV values (Basri et al. 2013) for a database of stars.
     datasource =  'kepler', 'tsi' or 'sim' for Kepler data, TSI data and 
     simulation data, respectively. 
     db = database containing data needed to calculate MDV (must match datasource)
     
     """
+    xlist = []
+    ylist = []
     mdvs = []
-    bin_avgs = []
     
     if datasource.lower() == 'kepler':
         startype = db['Var'].tolist()[0][:-1] + '-dominated Kepler Stars'
         for kid in db['KID'].tolist():
             print(kid)
-            lc = join_lcs(kid)
+            lc = joinLC(kid)
             y = lc.flux
             x = lc.time
+            ylist.append(y)
+            xlist.append(x)
             
     elif datasource.lower() == 'tsi':
+        db = db[(db['tsi_1au'] > 0)]
         startype = 'the Sun'
         y = db['tsi_1au']
-        y = y/np.median(y)
-        x = db['avg_time_JDN']
+        y = (y/np.median(y)).tolist()
+        x = db['avg_time_JDN'].tolist()
+        ylist.append(y)
+        xlist.append(x)
         
     elif datasource.lower() == 'sim':
         startype = ' a Simulated Star'
         y = db['y']
-        y = y/np.median(y)
-        x = db['x']
+        y = (y/np.median(y)).tolist()
+        x = db['x'].tolist()
+        ylist.append(y)
+        xlist.append(x)
+        
     else:
         raise Exception('Not a valid source of data')
+    
+    
+    for stari in range(len(xlist)):
+        bin_avgs = []
+        x = xlist[stari]
+        y = ylist[stari]
+        xrange = np.max(x) - np.min(x)   
+        binshift = binsize 
+        maxshift = (xrange-binsize)/binshift
+        for n in range(int(np.round(maxshift)+1)):  
+            lower_lim = np.min(x) + n*binshift
+            upper_lim = lower_lim + binsize
+            lower_ind = bisect(x,lower_lim)
+            upper_ind = bisect(x,upper_lim)
+            ybin = y[lower_ind:upper_ind]
+            if len(ybin) > 0:
+                avg_ybin = np.mean(ybin)
+                bin_avgs.append(avg_ybin)
         
-    xrange = np.max(x) - np.min(x)   
-    binshift = binsize 
-    maxshift = (xrange-binsize)/binshift
-    for n in range(int(np.round(maxshift)+1)):  
-        lower_lim = np.min(x) + n*binshift
-        upper_lim = lower_lim + binsize
-        lower_ind = bisect(x,lower_lim)
-        upper_ind = bisect(x,upper_lim)
-        ybin = y[lower_ind:upper_ind]
-        if len(ybin) > 0:
-            avg_ybin = np.mean(ybin)
-            bin_avgs.append(avg_ybin)
+        bin_avgs = np.array(bin_avgs)
+        bindiff = bin_avgs - np.roll(bin_avgs,1)
+        bindiff = bindiff[1:]
+        mdv = np.median(bindiff)
         
-    bin_avgs = np.array(bin_avgs)
-    bindiff = bin_avgs - np.roll(bin_avgs,1)
-    bindiff = bindiff[1:]
-    mdv = np.median(bindiff)
-    mdvs.append(mdv)            
+        mdvs.append(mdv)            
 
     # ---------------------------- Histogram -------------------------------
     if showhist == True:
