@@ -6,4 +6,5 @@ Amena Faruqi
 - Save all files in the same directory as the Python script before running.
 - Check docstrings for instructions on how to use each of the defined functions. 
 - Parameters used to generate each simulation file are given in the accompanying report. 
+- The file lightcurve_analysis.py contains all code used to anaylse TSI, Kepler and simulation data. 
 
